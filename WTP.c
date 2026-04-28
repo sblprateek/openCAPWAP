@@ -52,6 +52,8 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveStats(void *arg);
 CW_THREAD_RETURN_TYPE CWWTPReceiveFreqStats(void *arg);
 CW_THREAD_RETURN_TYPE gogo(void *arg);
 
+CWThreadMutex gWTPsMutex;
+
 int 	gEnabledLog;
 int 	gMaxLogFileSize;
 //Elena Agostini - 05/2014
@@ -616,6 +618,9 @@ int main (int argc, const char * argv[]) {
 #endif
 */
 	CWErrorHandlingInitLib();
+	if (!CWErr(CWCreateThreadMutex(&gWTPsMutex))) {
+		exit(1);
+	}
 	if(!CWParseSettingsFile()){
 		//Elena: fprintf
 		fprintf(stderr, "Can't start WTP");
@@ -754,7 +759,7 @@ int main (int argc, const char * argv[]) {
 	}
 }
 
-__inline__ unsigned int CWGetSeqNum() {
+unsigned int CWGetSeqNum() {
 	static unsigned int seqNum = 0;
 	
 	if (seqNum==CW_MAX_SEQ_NUM) seqNum=0;
@@ -762,7 +767,7 @@ __inline__ unsigned int CWGetSeqNum() {
 	return seqNum;
 }
 
-__inline__ int CWGetFragmentID() {
+int CWGetFragmentID() {
 	static int fragID = 0;
 	return fragID++;
 }

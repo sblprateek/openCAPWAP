@@ -94,7 +94,7 @@ void CWLogCloseFile() {
 	fclose(gLogFile);
 }
 
-__inline__ void CWVLog(const char *format, va_list args) {
+void CWVLog(const char *format, va_list args) {
 	char *logStr = NULL;
 	time_t now;
 	char *nowReadable = NULL;
@@ -142,7 +142,7 @@ __inline__ void CWVLog(const char *format, va_list args) {
 	CW_FREE_OBJECT(logStr);
 }
 
-__inline__ void CWLog(const char *format, ...) {
+void CWLog(const char *format, ...) {
 	va_list args;
 	
 	va_start(args, format);
@@ -151,7 +151,7 @@ __inline__ void CWLog(const char *format, ...) {
 	va_end(args);
 }
 
-__inline__ void CWDebugLog(const char *format, ...) {
+void CWDebugLog(const char *format, ...) {
 	#ifdef CW_DEBUGGING
 		char *logStr = NULL;
 		va_list args;

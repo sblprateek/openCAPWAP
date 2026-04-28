@@ -43,9 +43,9 @@
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
-CWThreadMutex gWTPsMutex;
 
-const int gMaxCAPWAPHeaderSizeBinding = 16; // note: this include optional Wireless field
+const int gMaxCAPWAPHeaderSizeBinding = 16;
+ // note: this include optional Wireless field
 
 
 CWBool CWBindingCheckType(int elemType)

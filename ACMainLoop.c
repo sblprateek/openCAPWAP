@@ -62,10 +62,10 @@ void CWACManageIncomingPacket(CWSocket sock,
 			      CWBool dataFlag );
 void _CWCloseThread(int i);
 void CWResetWTPProtocolManager(CWWTPProtocolManager *WTPProtocolManager);
-__inline__ CWWTPManager *CWWTPByName(const char *addr);
-__inline__ CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr,
+CWWTPManager *CWWTPByName(const char *addr);
+CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr,
 					CWSocket sock, CWBool dataFlag, char * sessionID);
-__inline__ genericHandshakeThreadPtr CWWTPThreadGenericByAddress(CWNetworkLev4Address *addressPtr);
+genericHandshakeThreadPtr CWWTPThreadGenericByAddress(CWNetworkLev4Address *addressPtr);
 void CWACSetNewGenericHandshakeDataThread(genericHandshakeThreadPtr * genericThreadStruct, CWNetworkLev4Address * addrPtr, CWSocket sock, char * pData, int readBytes);
 
 void CWACSetNewGenericHandshakeDataThread(genericHandshakeThreadPtr * genericThreadStruct, CWNetworkLev4Address * addrPtr, CWSocket sock, char * pData, int readBytes) {
@@ -525,7 +525,7 @@ void CWACManageIncomingPacket(CWSocket sock,
  * 
  * Elena Agostini - 04/2014: more WTPs with same IPs, different PORTs
  */
-__inline__ CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr, CWSocket sock, CWBool dataFlag, char * sessionID) {
+CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr, CWSocket sock, CWBool dataFlag, char * sessionID) {
 
 	int i;
 	
@@ -584,7 +584,7 @@ __inline__ CWWTPManager *CWWTPByAddress(CWNetworkLev4Address *addressPtr, CWSock
 }
 
 /* Elena Agostini - 04/2014: check if there is a generic thread for this handshake on datachannel */
-__inline__ genericHandshakeThreadPtr CWWTPThreadGenericByAddress(CWNetworkLev4Address *addressPtr) {
+genericHandshakeThreadPtr CWWTPThreadGenericByAddress(CWNetworkLev4Address *addressPtr) {
 	
 	int indexTmpThread=0;
 	

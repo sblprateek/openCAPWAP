@@ -133,18 +133,18 @@ extern struct nl80211SocketUnit globalNLSock;
 #define DATA_FRAME_FIXED_LEN_ACK 10
 
 
-enum {
+typedef enum {
 	CW_80211_SUPP_RATES_CONVERT_VALUE_TO_FRAME,
 	CW_80211_SUPP_RATES_CONVERT_FRAME_TO_VALUE
 }CW80211ConversionRateType;
 
-enum {
+typedef enum {
 	CW_OP_ADD_WLAN,
 	CW_OP_DEL_WLAN,
 	CW_OP_UPDATE_WLAN
 } wlanOperationType;
 
-enum {
+typedef enum {
 	CW_STA_MODE,
 	CW_AP_MODE
 } wlanModeType;

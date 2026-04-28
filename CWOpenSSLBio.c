@@ -61,22 +61,20 @@ typedef struct
 	unsigned int nMtu;
 } BIO_memory_data;
 
-static BIO_METHOD methods_memory = {
-	BIO_TYPE_DGRAM,
-	"memory packet",
-	memory_write,
-	memory_read,
-	memory_puts,
-	NULL, /* dgram_gets, */
-	memory_ctrl,
-	memory_new,
-	memory_free,
-	NULL,
-};
+static BIO_METHOD *methods_memory = NULL;
 
 BIO_METHOD* BIO_s_memory(void)
 {
-	return(&methods_memory);
+	if (methods_memory == NULL) {
+		methods_memory = BIO_meth_new(BIO_TYPE_DGRAM, "memory packet");
+		BIO_meth_set_write(methods_memory, memory_write);
+		BIO_meth_set_read(methods_memory, memory_read);
+		BIO_meth_set_puts(methods_memory, memory_puts);
+		BIO_meth_set_ctrl(methods_memory, memory_ctrl);
+		BIO_meth_set_create(methods_memory, memory_new);
+		BIO_meth_set_destroy(methods_memory, memory_free);
+	}
+	return methods_memory;
 }
 
 BIO* BIO_new_memory(CWSocket sock, CWNetworkLev4Address* pSendAddress, CWSafeList* pRecvAddress)
@@ -88,8 +86,7 @@ BIO* BIO_new_memory(CWSocket sock, CWNetworkLev4Address* pSendAddress, CWSafeLis
 	if (ret == NULL) 
 		return NULL;
 
-	//
-	pData = (BIO_memory_data*)ret->ptr;
+	pData = (BIO_memory_data*)BIO_get_data(ret);
 	pData->sock = sock;
 	memcpy(&pData->sendAddress, pSendAddress, sizeof(CWNetworkLev4Address));
 	pData->pRecvAddress = pRecvAddress;
@@ -99,10 +96,8 @@ BIO* BIO_new_memory(CWSocket sock, CWNetworkLev4Address* pSendAddress, CWSafeLis
 
 static int memory_new(BIO *bi)
 {
-	bi->init = 1;
-	bi->num = 0;
-	bi->flags = 0;
-	bi->ptr = (char*)malloc(sizeof(BIO_memory_data));
+	BIO_set_init(bi, 1);
+	BIO_set_data(bi, malloc(sizeof(BIO_memory_data)));
 
 	return 1;
 }
@@ -112,7 +107,8 @@ static int memory_free(BIO *a)
 	if (a == NULL) 
 		return 0;
 
-	free(a->ptr);
+	free(BIO_get_data(a));
+	BIO_set_data(a, NULL);
 	return 1;
 }
 
@@ -121,7 +117,7 @@ static int memory_read(BIO *b, char *out, int outl)
 	int ret = -1;
 	char* buf;
 	int size;
-	BIO_memory_data* pData = (BIO_memory_data*)b->ptr;
+	BIO_memory_data* pData = (BIO_memory_data*)BIO_get_data(b);
 
 	//BIO_clear_retry_flags(b);
 	CWLockSafeList(pData->pRecvAddress);
@@ -151,7 +147,7 @@ static int memory_write(BIO *b, const char *in, int inl)
 {
 	int ret = -1;
 	char strBuffer[MAX_UDP_PACKET_SIZE];
-	BIO_memory_data* pData = (BIO_memory_data*)b->ptr;
+	BIO_memory_data* pData = (BIO_memory_data*)BIO_get_data(b);
 	
 	strBuffer[0] = (char)(CW_PROTOCOL_VERSION << 4) | (char)(CW_PACKET_CRYPT);
 	strBuffer[1] = strBuffer[2] = strBuffer[3] = 0;
@@ -179,7 +175,7 @@ static long memory_ctrl(BIO *b, int cmd, long num, void *ptr)
 	long ret = 1;
 	long sockopt_val = 0;
 	unsigned int sockopt_len = 0;
-	BIO_memory_data* pData = (BIO_memory_data*)b->ptr;
+	BIO_memory_data* pData = (BIO_memory_data*)BIO_get_data(b);
 
 	switch (cmd)
 	{

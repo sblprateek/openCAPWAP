@@ -44,16 +44,16 @@
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
  
-__inline__ int CWWTPGetDiscoveryType() {
+int CWWTPGetDiscoveryType() {
 	return CW_MSG_ELEMENT_DISCOVERY_TYPE_CONFIGURED;
 }
 
 //Elena Agostini
-__inline__ int CWWTPGetMaxRadios() {
+int CWWTPGetMaxRadios() {
 	return gRadiosInfo.radioCount;
 }
 
-__inline__ int CWWTPGetRadiosInUse() 
+int CWWTPGetRadiosInUse() 
 {
 	/*for (i=0; i<gRadiosInfo.radioCount; i++)
 	{
@@ -65,7 +65,7 @@ __inline__ int CWWTPGetRadiosInUse()
 	return gRadiosInfo.radioCount;
 }
 
-__inline__ int CWWTPGetEncCapabilities() {
+int CWWTPGetEncCapabilities() {
 	return 0;
 }
 
@@ -123,7 +123,7 @@ CWBool CWWTPGetVendorInfos(CWWTPVendorInfos *valPtr) {
 	return CW_TRUE;
 }
 
-__inline__ void CWWTPDestroyVendorInfos(CWWTPVendorInfos *valPtr) {
+void CWWTPDestroyVendorInfos(CWWTPVendorInfos *valPtr) {
 	int i;
 	
 	if(valPtr == NULL) return;
@@ -135,7 +135,7 @@ __inline__ void CWWTPDestroyVendorInfos(CWWTPVendorInfos *valPtr) {
 	CW_FREE_OBJECT(valPtr->vendorInfos);
 }
 
-__inline__ int CWWTPGetFrameTunnelMode() {
+int CWWTPGetFrameTunnelMode() {
 	//it may be also 802.3_FrameTunnelMode - NativeFrameTunnelMode - All
 	
 #ifdef SPLIT_MAC
@@ -146,7 +146,7 @@ __inline__ int CWWTPGetFrameTunnelMode() {
 
 }
 
-__inline__ int CWWTPGetMACType() {
+int CWWTPGetMACType() {
 	
 #ifdef SPLIT_MAC
 	return CW_SPLIT_MAC;
@@ -156,15 +156,15 @@ __inline__ int CWWTPGetMACType() {
 
 }
 
-__inline__ char *CWWTPGetLocation() {
+char *CWWTPGetLocation() {
 	return gWTPLocation;
 }
 
-__inline__ int CWWTPGetSessionID() {
+int CWWTPGetSessionID() {
 	return CWRandomIntInRange(0, INT_MAX);
 }
 
-__inline__ int CWWTPGetIPv4Address() {
+int CWWTPGetIPv4Address() {
 	struct sockaddr_in myAddr;
 	unsigned int len = sizeof(myAddr);
 	
@@ -176,7 +176,7 @@ __inline__ int CWWTPGetIPv4Address() {
 	return ntohl(myAddr.sin_addr.s_addr); 	// TO-DO: this is garbage if we are an IPv6 client
 }
 
-__inline__ void CWWTPGetIPv6Address(struct sockaddr_in6* myAddr) {
+void CWWTPGetIPv6Address(struct sockaddr_in6* myAddr) {
 	
 	unsigned int len = sizeof(*myAddr);
 	
@@ -184,15 +184,15 @@ __inline__ void CWWTPGetIPv6Address(struct sockaddr_in6* myAddr) {
 	getsockname(gWTPSocket, (struct sockaddr*) myAddr, &len);
 }
 
-__inline__ int CWWTPGetIPv4StatusDuplicate() {
+int CWWTPGetIPv4StatusDuplicate() {
 	return gIPv4StatusDuplicate;
 }
 
-__inline__ int CWWTPGetIPv6StatusDuplicate() {
+int CWWTPGetIPv6StatusDuplicate() {
 	return gIPv6StatusDuplicate;
 }
 
-__inline__ char *CWWTPGetName() {
+char *CWWTPGetName() {
 	return gWTPName;
 }
 

@@ -603,13 +603,11 @@ CLEAR_DATA_RUN_STATE:
 	return NULL;
 }
 
-/* 
+/*
  * Manage Run State.
  */
 
 extern int gRawSock;
-int wtpInRunState=0;
-
 CWStateTransition CWWTPEnterRun() {
 
 	int k, msg_len;

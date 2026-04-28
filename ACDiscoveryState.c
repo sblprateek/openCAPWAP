@@ -45,15 +45,15 @@
 /*__________________________________________________________*/
 /*  *******************___PROTOTYPES___*******************  */
 
-__inline__ int CWACGetHWVersion();
-__inline__ int CWACGetSWVersion();
-__inline__ int CWACGetStations();
-__inline__ int CWACGetLimit();
-__inline__ int CWACGetActiveWTPs();
-__inline__ int CWACGetMaxWTPs();
-__inline__ int CWACGetSecurity();
-__inline__ char *CWACGetName();
-__inline__ int CWACGetInterfacesCount();
+int CWACGetHWVersion();
+int CWACGetSWVersion();
+int CWACGetStations();
+int CWACGetLimit();
+int CWACGetActiveWTPs();
+int CWACGetMaxWTPs();
+int CWACGetSecurity();
+char *CWACGetName();
+int CWACGetInterfacesCount();
 
 /*_________________________________________________________*/
 /*  *******************___FUNCTIONS___*******************  */

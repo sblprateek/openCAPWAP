@@ -52,7 +52,7 @@
 /*  *******************___DEFINE___*******************  */
 //extern char * WTP_LOG_FILE_NAME;
 //Elena Agostini: now it is useless - TODO remove from WTP this const
-#define WTP_LOG_FILE_NAME	"/var/log/wtp.log.txt"
+#define WTP_LOG_FILE_NAME	"wtp.log.txt"
 
 /*_____________________________________________________*/
 /*  *******************___TYPES___*******************  */

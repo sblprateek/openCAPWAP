@@ -53,6 +53,9 @@ CWThreadMutex gCreateIDMutex;
 CWWTPManager gWTPs[CW_MAX_WTP];
 CWThreadMutex gWTPsMutex;
 
+applicationsManager appsManager;
+UNIX_SOCKS_INFO UnixSocksArray[CW_MAX_WTP];
+
 int gEnabledLog;
 int gMaxLogFileSize;
 char gLogFileName[]=AC_LOG_FILE_NAME;
@@ -312,7 +315,7 @@ void CWACDestroy() {
 }
 
 
-__inline__ unsigned int CWGetSeqNum() {
+unsigned int CWGetSeqNum() {
 
 	static unsigned int seqNum = 0;
 	unsigned int r;
@@ -334,7 +337,7 @@ __inline__ unsigned int CWGetSeqNum() {
 }
 
 
-__inline__ int CWGetFragmentID() {
+int CWGetFragmentID() {
 
 	static int fragID = 0;
 	int r;

@@ -49,7 +49,7 @@
  * ref -> BUG ML12
  * 20/10/2009 - Donato Capitella
  */
-static void inline CW_FREE_WTP_MSG_ARRAY(int WTPIndex) {
+static void CW_FREE_WTP_MSG_ARRAY(int WTPIndex) {
         int i;
         for(i = 0; i < gWTPs[WTPIndex].messagesCount; i++) {
                 CW_FREE_OBJECT(gWTPs[WTPIndex].messages[i].msg);
@@ -104,7 +104,7 @@ CWBool CWACResendAcknowledgedPacket(int WTPIndex) {
 }
 
 
-__inline__ CWBool CWACSendAcknowledgedPacket(int WTPIndex, int msgType, int seqNum) {
+CWBool CWACSendAcknowledgedPacket(int WTPIndex, int msgType, int seqNum) {
 	gWTPs[WTPIndex].retransmissionCount = 0;
 	gWTPs[WTPIndex].isRetransmitting = CW_TRUE;
 	gWTPs[WTPIndex].responseType=msgType;

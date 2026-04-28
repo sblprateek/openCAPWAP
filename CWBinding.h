@@ -154,6 +154,7 @@ typedef struct {
 } CWBindingDataListElement;
 
 extern const int gMaxCAPWAPHeaderSizeBinding;
+extern CWThreadMutex gWTPsMutex;
 
 CWBool CWAssembleDataMessage(CWProtocolMessage **completeMsgPtr, int *fragmentsNumPtr, int PMTU, CWProtocolMessage *frame, CWBindingTransportHeaderValues *bindingValuesPtr, int is_crypted, int keepAlive);
 CWBool CWAssembleTransportHeaderBinding(CWProtocolMessage *transportHdrPtr, CWBindingTransportHeaderValues *valuesPtr);

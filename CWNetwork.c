@@ -47,7 +47,7 @@ CWNetworkLev3Service gNetworkPreferredFamily = CW_IPv4;
 /*
  * Assume address is valid
  */
-__inline__ int CWNetworkGetAddressSize(CWNetworkLev4Address *addrPtr) {
+int CWNetworkGetAddressSize(CWNetworkLev4Address *addrPtr) {
 	
 	switch ( ((struct sockaddr*)(addrPtr))->sa_family ) {
 		

@@ -46,7 +46,7 @@
 typedef SSL_CTX *CWSecurityContext;
 typedef SSL *CWSecuritySession;
 
-#define	CWSecuritySetPeerForSession(session, addrPtr)	BIO_ctrl((session)->rbio, BIO_CTRL_DGRAM_SET_PEER, 1, (addrPtr))
+#define	CWSecuritySetPeerForSession(session, addrPtr)	BIO_ctrl(SSL_get_rbio(session), BIO_CTRL_DGRAM_SET_PEER, 1, (addrPtr))
 
 CWBool CWSecurityInitLib(void);
 CWBool CWSecurityInitSessionClient(CWSocket sock,
@@ -68,6 +68,13 @@ CWBool CWSecurityInitContext(CWSecurityContext *ctxPtr,
 			     const char *passw,
 			     CWBool isClient,
 			     int (*hackPtr)(void *));
+
+CWBool CWSecurityInitGenericSessionServerDataChannel(CWSafeList packetDataList,
+					CWNetworkLev4Address * address,
+				   CWSocket sock,
+				   CWSecurityContext ctx,
+				   CWSecuritySession *sessionPtr,
+				   int *PMTUPtr);
 
 void CWSecurityDestroyContext(CWSecurityContext ctx);
 void CWSecurityDestroySession(CWSecuritySession s);
