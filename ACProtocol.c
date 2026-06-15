@@ -38,6 +38,7 @@
 
 #include "CWAC.h"
 #include "CWVendorPayloads.h"
+#include "src/timesync/ac_sntp.h"   /* acTimeSyncGetUTC() for Timestamp element */
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
@@ -580,6 +581,29 @@ CWBool CWAssembleMsgElemIdleTimeout (CWProtocolMessage *msgPtr)
 //	CWDebugLog("Idle Timeout: %d", idleTimeout);
 	
 	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_IDLE_TIMEOUT_CW_TYPE);
+}
+
+
+/*
+ * CAPWAP Timestamp message element (RFC 5415 4.6.43): the AC's current time in
+ * seconds since 1970-01-01 UTC, so WTPs can time-synchronise. The value is the
+ * NTP-disciplined time from the SNTP client; 0 means the AC is not synced yet,
+ * in which case the WTP must ignore it.
+ */
+CWBool CWAssembleMsgElemTimestamp (CWProtocolMessage *msgPtr)
+{
+	uint32_t utc = 0;
+	const int timestamp_length = 4;
+
+	if(msgPtr == NULL) return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
+
+	CW_CREATE_PROTOCOL_MESSAGE(*msgPtr, timestamp_length, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+
+	if(acTimeSyncGetUTC(&utc) != 0)
+		utc = 0;   /* not synced -> 0; WTP ignores a zero timestamp */
+	CWProtocolStore32(msgPtr, utc);
+
+	return CWAssembleMsgElem(msgPtr, CW_MSG_ELEMENT_TIMESTAMP_CW_TYPE);
 }
 
 

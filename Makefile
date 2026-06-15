@@ -91,6 +91,7 @@ AC_OBJS = AC.o ACConfigFile.o ACMainLoop.o ACDiscoveryState.o ACJoinState.o \
 	ACBinding.o ACInterface.o ACSettingsFile.o timerlib.o tap.o \
 	ACIEEEConfigurationState.o CW80211InformationElements.o CWTunnel.o CWAVL.o \
 	./HostapdHeaders/utils/os_unix.o \
+	src/timesync/ac_sntp.o \
 
 # list of generated object files for WTP.
 WTP_OBJS = WTP.o WTPFrameReceive.o WTPFreqStatsReceive.o WTPStatsReceive.o WTPConfigFile.o WTPProtocol.o WTPProtocol_User.o \

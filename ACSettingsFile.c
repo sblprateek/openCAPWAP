@@ -54,6 +54,12 @@ WTPQosValues* gDefaultQosValues=NULL;
 int gHostapd_port;
 char* gHostapd_unix_path;
 
+/* Time sync (CAPWAP Timestamp / SNTP) configuration. Empty server => disabled.
+ * gNtpPollInterval: -1 unset (default periodic), 0 one-shot (periodic OFF),
+ * >0 seconds between re-syncs. */
+char gNtpServer[256] = "";
+int  gNtpPollInterval = -1;
+
 void CWExtractValue(char* start, char** startValue, char** endValue, int* offset)
 {
 	*offset=strspn (start+1, " \t\n\r");
@@ -240,8 +246,31 @@ CWBool CWParseSettingsFile()
 			
 			CWDebugLog("Hostapd Unix Domain Path: %s",gHostapd_unix_path);
 			CW_FREE_OBJECT(line);
-			continue;	
-			
+			continue;
+
+		}
+		/* Time sync: NTP server the AC disciplines its clock against. */
+		if (!strncmp(startTag+1, "NTP_SERVER", endTag-startTag-1))
+		{
+			char* startValue=NULL;
+			char* endValue=NULL;
+			int offset = 0;
+
+			CWExtractValue(endTag, &startValue, &endValue, &offset);
+			if(offset > 0 && offset < (int)sizeof(gNtpServer)) {
+				strncpy(gNtpServer, startValue, offset);
+				gNtpServer[offset] = '\0';
+			}
+			CWDebugLog("NTP_SERVER: %s", gNtpServer);
+			CW_FREE_OBJECT(line);
+			continue;
+		}
+		if (!strncmp(startTag+1, "NTP_POLL_INTERVAL", endTag-startTag-1))
+		{
+			gNtpPollInterval = atoi(endTag+1);
+			CWDebugLog("NTP_POLL_INTERVAL: %d", gNtpPollInterval);
+			CW_FREE_OBJECT(line);
+			continue;
 		}
 		CW_FREE_OBJECT(line);
 	}

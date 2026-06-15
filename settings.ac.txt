@@ -25,3 +25,14 @@
 <AC_HOSTAPD_PORT> 5543
 <AC_HOSTAPD_UNIX_PATH> /tmp/ac_ipc_hostapd
 
+#
+# Time synchronization (CAPWAP Timestamp element, RFC 5415).
+# The AC disciplines its clock to this NTP server and hands the time to WTPs.
+# Comment out NTP_SERVER to disable time sync entirely.
+<NTP_SERVER> pool.ntp.org
+# Re-sync period in seconds:
+#   0   = one-shot: sync once at AC startup, periodic poll OFF
+#   >0  = re-sync every N seconds (minimum 16)
+#   omit this line = default (64s)
+<NTP_POLL_INTERVAL> 64
+

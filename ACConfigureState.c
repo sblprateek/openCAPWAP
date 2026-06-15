@@ -326,7 +326,7 @@ CWBool CWAssembleConfigureResponse(CWProtocolMessage **messagesPtr,
 				   int seqNum) {
 
 	CWProtocolMessage *msgElems = NULL;
-	const int MsgElemCount=6;
+	const int MsgElemCount=7;
 	CWProtocolMessage *msgElemsBinding = NULL;
 	int msgElemBindingCount=0;
 	int k = -1;
@@ -344,7 +344,9 @@ CWBool CWAssembleConfigureResponse(CWProtocolMessage **messagesPtr,
 	    /*(!(CWAssembleMsgElemRadioOperationalState(-1, &(msgElems[++k])))) ||*/
 	    (!(CWAssembleMsgElemDecryptErrorReportPeriod(&(msgElems[++k])))) ||
 	    (!(CWAssembleMsgElemIdleTimeout(&(msgElems[++k])))) ||
-	    (!(CWAssembleMsgElemWTPFallback(&(msgElems[++k]))))
+	    (!(CWAssembleMsgElemWTPFallback(&(msgElems[++k])))) ||
+	    /* RFC 5415 Timestamp: AC time -> WTP clock sync */
+	    (!(CWAssembleMsgElemTimestamp(&(msgElems[++k]))))
 	){
 		int i;
 		for(i = 0; i <= k; i++) { CW_FREE_PROTOCOL_MESSAGE(msgElems[i]);}

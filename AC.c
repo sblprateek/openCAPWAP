@@ -41,6 +41,11 @@
 #include "CWCommon.h"
 #include "tap.h"
 
+/* AC-side SNTP client: NTP-disciplined time authority for WTPs */
+#include "src/timesync/ac_sntp.h"
+extern char gNtpServer[];
+extern int  gNtpPollInterval;
+
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
@@ -183,7 +188,13 @@ void CWACInit() {
 		CWLog("Can't start AC");
 		exit(1);
 	}
-	
+
+	/* Time sync: discipline against the configured NTP server so the time we
+	 * hand WTPs (CAPWAP Timestamp element) is standard, not the AC's local
+	 * clock. No-op if <NTP_SERVER> is unset in settings.ac.txt. */
+	if(acTimeSyncStart(gNtpServer, gNtpPollInterval) != 0)
+		CWLog("Time sync: could not start SNTP client (continuing)");
+
 	//Elena Agostini - 07/2014: initialize listGenericThreadDTLSData
 	for(index=0; index < WTP_MAX_TMP_THREAD_DTLS_DATA; index++)
 		listGenericThreadDTLSData[index] = NULL;

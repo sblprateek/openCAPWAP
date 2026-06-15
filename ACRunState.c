@@ -2227,15 +2227,23 @@ CWBool CWParseEchoRequestMessage(CWProtocolMessage *msgPtr, int len) {
 CWBool CWAssembleEchoResponse(CWProtocolMessage **messagesPtr, int *fragmentsNumPtr, int PMTU, int seqNum) {
 
 	CWProtocolMessage *msgElems= NULL;
-	const int msgElemCount=0;
+	/* Carry the CAPWAP Timestamp element on every Echo Response so WTPs keep
+	 * their clock disciplined to AC time at the echo interval (periodic sync). */
+	const int msgElemCount=1;
 	CWProtocolMessage *msgElemsBinding= NULL;
 	int msgElemBindingCount=0;
-	
+
 	if(messagesPtr == NULL || fragmentsNumPtr == NULL)
 		return CWErrorRaise(CW_ERROR_WRONG_ARG, NULL);
-	
+
 	CWLog("Assembling Echo Response...");
-		
+
+	CW_CREATE_PROTOCOL_MSG_ARRAY_ERR(msgElems, msgElemCount, return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+	if(!(CWAssembleMsgElemTimestamp(&(msgElems[0])))) {
+		CW_FREE_OBJECT(msgElems);
+		return CW_FALSE;
+	}
+
 	if(!(CWAssembleMessage(messagesPtr,
 			       fragmentsNumPtr,
 			       PMTU,

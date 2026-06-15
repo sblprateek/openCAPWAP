@@ -171,6 +171,7 @@ CWBool CWAssembleMsgElemCWTimer(CWProtocolMessage *msgPtr);				//12
 CWBool CWAssembleMsgElemDecryptErrorReportPeriod(CWProtocolMessage *msgPtr);		//16
 CWBool CWAssembleMsgElemIdleTimeout(CWProtocolMessage *msgPtr);				//23
 CWBool CWAssembleMsgElemWTPFallback(CWProtocolMessage *msgPtr);				//37
+CWBool CWAssembleMsgElemTimestamp(CWProtocolMessage *msgPtr);				//6 (RFC 5415)
 /* Elena Agostini-08/2014: Add MultiDomain Capability message element for nl80211 support */
 CWBool CWAssembleMsgElemACWTPMultiDomainCapability(CWProtocolMessage *msgPtr, int radioID, int firstChannel, int numChannels, int maxTxPower);
 /* Elena Agostini - 02/2014: ECN Support Msg Elem MUST be included in Join Request/Response Messages */
