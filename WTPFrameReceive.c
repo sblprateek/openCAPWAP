@@ -314,13 +314,18 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFrame(void *arg){
 		/* Compare lower 5 bytes only: qca-wifi varies the first MAC octet across
 		 * VAPs and wifi restarts (58 vs 5e), but 61:63:f3:8f:f6 is stable. */
 		{
-			static int _dbgcount = 0;
-			if(_dbgcount < 30){
-				unsigned char *_b = (unsigned char*)dataFrame.BSSID;
-				unsigned char *_m = (unsigned char*)WTPGlobalBSSList[0]->interfaceInfo->MACaddr;
-				CWLog("[BSSID-DBG] frame BSSID %02x:%02x:%02x:%02x:%02x:%02x vs stored %02x:%02x:%02x:%02x:%02x:%02x",
-					_b[0],_b[1],_b[2],_b[3],_b[4],_b[5], _m[0],_m[1],_m[2],_m[3],_m[4],_m[5]);
-				_dbgcount++;
+			unsigned char *_sa = (unsigned char*)dataFrame.SA;
+			unsigned char *_da = (unsigned char*)dataFrame.DA;
+			unsigned char *_bs = (unsigned char*)dataFrame.BSSID;
+			if((_sa[0]==0x28 && _sa[1]==0x3a && _sa[2]==0x4d) ||
+			   (_da[0]==0x28 && _da[1]==0x3a && _da[2]==0x4d)){
+				int _tods = (dataFrame.frameControl & IEEE80211_FCTL_TODS) ? 1 : 0;
+				int _fromds = (dataFrame.frameControl & IEEE80211_FCTL_FROMDS) ? 1 : 0;
+				CWLog("[CLIENT-DBG] fc=0x%04x toDS=%d fromDS=%d BSSID=%02x:%02x:%02x:%02x:%02x:%02x SA=%02x:%02x:%02x:%02x:%02x:%02x DA=%02x:%02x:%02x:%02x:%02x:%02x",
+					(unsigned short)dataFrame.frameControl, _tods, _fromds,
+					_bs[0],_bs[1],_bs[2],_bs[3],_bs[4],_bs[5],
+					_sa[0],_sa[1],_sa[2],_sa[3],_sa[4],_sa[5],
+					_da[0],_da[1],_da[2],_da[3],_da[4],_da[5]);
 			}
 		}
 		if(memcmp(dataFrame.BSSID + 1, WTPGlobalBSSList[0]->interfaceInfo->MACaddr + 1, ETH_ALEN - 1) != 0)
@@ -328,7 +333,8 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFrame(void *arg){
 		
 		//If data frame && toDS
 		if(
-			WLAN_FC_GET_STYPE(dataFrame.frameControl) == WLAN_FC_STYPE_DATA &&
+			(WLAN_FC_GET_STYPE(dataFrame.frameControl) == WLAN_FC_STYPE_DATA ||
+			 WLAN_FC_GET_STYPE(dataFrame.frameControl) == WLAN_FC_STYPE_QOS_DATA) &&
 			((dataFrame.frameControl & IEEE80211_FCTL_TODS) == IEEE80211_FCTL_TODS)
 			)
 		{

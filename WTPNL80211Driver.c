@@ -1225,9 +1225,17 @@ int CWInjectFrameMonitor(int rawSocket, void *data, size_t len, int encrypt, int
 		}
 	};
 	*/
+	/* Option B: bind the send to the CURRENT monitor0 ifindex so a
+	 * recreated monitor0 (new ifindex) does not cause ENETDOWN. */
+	struct sockaddr_ll _injDest;
+	memset(&_injDest, 0, sizeof(_injDest));
+	_injDest.sll_family = AF_PACKET;
+	_injDest.sll_protocol = htons(ETH_P_ALL);
+	_injDest.sll_ifindex = if_nametoindex("monitor0");
+	_injDest.sll_halen = 0;
 	struct msghdr msg = {
-		.msg_name = NULL,
-		.msg_namelen = 0,
+		.msg_name = &_injDest,
+		.msg_namelen = sizeof(_injDest),
 		.msg_iov = iov,
 		.msg_iovlen = 1,
 		.msg_control = NULL,

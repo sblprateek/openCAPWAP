@@ -58,6 +58,7 @@ CWBool CWWTPCheckForBindingFrame()
 			int k;
 			int fragmentsNum = 0;
 			CWProtocolMessage *completeMsgPtr = NULL;
+			CWLog("[FWD-DBG] dequeued frame=%p frame->offset=%d", (void*)dataFirstElem->frame, dataFirstElem->frame ? dataFirstElem->frame->offset : -1);
 			
 			if (!CWAssembleDataMessage(&completeMsgPtr, 
 						   &fragmentsNum, 
@@ -80,16 +81,17 @@ CWBool CWWTPCheckForBindingFrame()
 				continue;
 			}
 								
+			CWLog("[FWD-DBG] assembled OK fragmentsNum=%d sessionData=%p socket=%d", fragmentsNum, (void*)gWTPSessionData, gWTPDataSocket);
 			for (k = 0; k < fragmentsNum; k++) 
 			{
-#ifdef CW_NO_DTLS
-				if(!CWNetworkSendUnsafeConnected(gWTPDataSocket,
-							completeMsgPtr[k].msg,
-							completeMsgPtr[k].offset)) 
-#else
+#ifdef CW_DTLS_DATA_CHANNEL
 				if(!CWSecuritySend(gWTPSessionData,
 							completeMsgPtr[k].msg,
 							completeMsgPtr[k].offset))
+#else
+				if(!CWNetworkSendUnsafeConnected(gWTPDataSocket,
+							completeMsgPtr[k].msg,
+							completeMsgPtr[k].offset)) 
 #endif
 			{
 			//	if (!CWNetworkSendUnsafeConnected(gWTPDataSocket, completeMsgPtr[k].msg, completeMsgPtr[k].offset)) {

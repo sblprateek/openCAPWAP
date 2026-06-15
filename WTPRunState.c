@@ -371,6 +371,7 @@ manager_data_failure:
 				break;
 				//continue;
 			}
+			CWLog("[WTP-DL] manager got data_msgType=%d offset=%d", msgPtr.data_msgType, msgPtr.offset);
 
 			if (msgPtr.data_msgType == CW_DATA_MSG_KEEP_ALIVE_TYPE) {
 
