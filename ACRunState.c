@@ -186,6 +186,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 		/* We have received a Data Message... now just log this event and do actions by the dataType */
 		
 	//	CWDebugLog("--> Received a DATA Message: Type: %d", msgPtr->data_msgType);
+		CWLog("[RUN-DBG] ACEnterRun data_msgType=%d offset=%d", msgPtr->data_msgType, msgPtr->offset);
 
 		if(msgPtr->data_msgType == CW_DATA_MSG_FRAME_TYPE)	{
 
@@ -304,6 +305,20 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				{
 					CWLog("CW80211: Error parsing data frame");
 					return CW_FALSE;
+				}
+				/* Option B: learn the source STA from the uplink so downlink
+				 * unicast frames can be routed back to it (assoc is done by
+				 * hostapd, not the AC, so the AVL is otherwise never populated). */
+				if(!checkAddressBroadcast(dataFrame.SA)) {
+					CWThreadMutexLock(&mutexAvlTree);
+					if(AVLfind(dataFrame.SA, avlTree) == NULL) {
+						avlTree = AVLinsert(WTPIndex, dataFrame.SA, dataFrame.BSSID,
+							gWTPs[WTPIndex].WTPProtocolManager.radiosInfo.radiosInfo[0].gWTPPhyInfo.radioID,
+							avlTree);
+						CWLog("[DL-LEARN] AVLinsert STA %02x:%02x:%02x:%02x:%02x:%02x WTPIndex=%d",
+							dataFrame.SA[0],dataFrame.SA[1],dataFrame.SA[2],dataFrame.SA[3],dataFrame.SA[4],dataFrame.SA[5], WTPIndex);
+					}
+					CWThreadMutexUnlock(&mutexAvlTree);
 				}
 /*
 				CWLog("**RICEVUTO DA WTP FRAME**");

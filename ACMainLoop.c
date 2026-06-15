@@ -314,11 +314,7 @@ void CWACManageIncomingPacket(CWSocket sock,
 				CWLog("[KA-LOOKUP] dataFlag=%d wtpPtr=%p", dataFlag, (void*)wtpPtr);
 			}
 			else {
-	{
-		struct sockaddr_in *_ca = (struct sockaddr_in*)addrPtr;
-		CWLog("Control wtpPtr lookup: from %s:%d, gWTPs[0].isNotFree=%d", inet_ntoa(_ca->sin_addr), ntohs(_ca->sin_port), gWTPs[0].isNotFree);
-		if(gWTPs[0].isNotFree) { struct sockaddr_in *_ca2=(struct sockaddr_in*)&gWTPs[0].address; CWLog("gWTPs[0].address=%s:%d", inet_ntoa(_ca2->sin_addr), ntohs(_ca2->sin_port)); }
-	}
+	/* debug log removed: crashed in inet_ntoa/strlen */
 				wtpPtr = CWWTPByAddress(addrPtr, sock, dataFlag, NULL);
 			}	
 	}
@@ -824,6 +820,15 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 						dmsg.msg = plainBuf;
 						dmsg.offset = 0;
 						if (CWParseTransportHeader(&dmsg, &dvals, &df, gWTPs[i].RadioMAC)) {
+							/* For 802.11/802.3 data frames, rebase msg past the CAPWAP
+							 * header (offset cursor) and set offset = payload length so
+							 * ACEnterRun computes msglen correctly. Keepalives keep cursor. */
+							if (dmsg.data_msgType == CW_IEEE_802_11_FRAME_TYPE ||
+							    dmsg.data_msgType == CW_IEEE_802_3_FRAME_TYPE) {
+								int hdrLen = dmsg.offset;
+								dmsg.msg += hdrLen;
+								dmsg.offset = readBytes - hdrLen;
+							}
 							ACEnterRun(i, &dmsg, CW_TRUE);
 						}
 						CW_FREE_OBJECT(plainBuf);

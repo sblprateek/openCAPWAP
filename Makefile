@@ -53,7 +53,7 @@ INC_PATH = /usr/include/libnl3
 #CFLAGS =  -Wall -g -O0 -D_REENTRANT  
 CFLAGS += -fcommon -fgnu89-inline
 
-#CFLAGS += -DSPLIT_MAC
+CFLAGS += -DSPLIT_MAC
 
 #DTLS Data Channel
 #CFLAGS += -DCW_DTLS_DATA_CHANNEL

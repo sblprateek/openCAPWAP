@@ -650,6 +650,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
  * OLD VERSION
  * int readByest80211 = from_8023_to_80211(buf, readBytes, buf80211, macAddrTap);
  */
+		CWLog("[DL-DBG] tap read=%d conv80211=%d WTPIndexFromSta=%d", readBytes, readByest80211, WTPIndexFromSta);
 		if(readByest80211 == -1)
 			goto after_tap;
 
@@ -662,17 +663,19 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 				{
 					for(indexWlan=0; indexWlan<WTP_MAX_INTERFACES; indexWlan++)
 					{
-						if(
-							gWTPs[indexWTP].WTPProtocolManager.radiosInfo.radiosInfo[indexRadio].gWTPPhyInfo.interfaces[indexWlan].typeInterface == CW_AP_MODE &&
-							gWTPs[indexWTP].WTPProtocolManager.radiosInfo.radiosInfo[indexRadio].gWTPPhyInfo.interfaces[indexWlan].BSSID!=NULL
-						)
+						nodeAVL *bcNode = NULL;
+						CWThreadMutexLock(&mutexAvlTree);
+						bcNode = AVLfindWTPNode(avlTree, indexWTP);
+						CWThreadMutexUnlock(&mutexAvlTree);
+						CWLog("[DL-BC] indexWTP=%d indexWlan=%d bcNode=%p", indexWTP, indexWlan, (void*)bcNode);
+						if( bcNode != NULL && indexWlan == 0 )
 						{
 							
 			//				CWLog("Invio a WTP %d radio %d wlan %d bssid: %02x", indexWTP, indexRadio, indexWlan, (int)gWTPs[indexWTP].WTPProtocolManager.radiosInfo.radiosInfo[indexRadio].gWTPPhyInfo.interfaces[indexWlan].BSSID[0]);
 
 							CW_COPY_MEMORY(
 										(buf80211+LEN_IE_FRAME_CONTROL+LEN_IE_DURATION+ETH_ALEN), 
-										gWTPs[indexWTP].WTPProtocolManager.radiosInfo.radiosInfo[indexRadio].gWTPPhyInfo.interfaces[indexWlan].BSSID, 
+										bcNode->BSSID,
 										ETH_ALEN);
 							
 										CW_CREATE_OBJECT_ERR(frame, CWProtocolMessage, return 0;);

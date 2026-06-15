@@ -51,8 +51,11 @@ nodeAVL* AVLfindWTPNode(nodeAVL* t, int index)
     if(t->index == index)
 		return t;
 	
-	AVLfindWTPNode(t->left, index);
-	AVLfindWTPNode(t->right, index);
+	{
+		nodeAVL* r = AVLfindWTPNode(t->left, index);
+		if(r != NULL) return r;
+		return AVLfindWTPNode(t->right, index);
+	}
 	/*
 	else if(compareEthAddr(staAddr, t->staAddr) < 0)
         return AVLfindWTPNode(staAddr, t->left, index);
