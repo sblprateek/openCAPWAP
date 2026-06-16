@@ -1,5 +1,8 @@
 #include "CWCommon.h"
 #include <linux/if_ether.h>
+#ifndef WLAN_FC_GET_STYPE
+#define WLAN_FC_GET_STYPE(fc) (((fc) & 0x00f0) >> 4)
+#endif
 
 //Bridge
 u8 bridge_tunnel_header[] = {0xaa, 0xaa, 0x03, 0x00, 0x00, 0xf8}; 
@@ -88,15 +91,23 @@ CWBool CWConvertDataFrame_80211_to_8023(unsigned char *frameReceived, int frameL
 	struct CWFrameDataHdr dataFrame;
 	CWBool flagEncaps=CW_FALSE;
 	int sizeEthFrame=0, offsetEthPayload=0, offsetFrame8023=0;
-	
-	unsigned char * payload = frameReceived+HLEN_80211;
-	short int etherType = (payload[6] << 8) | payload[7];
+	int hdrLen80211 = HLEN_80211;
 	
 	if(!CW80211ParseDataFrameToDS(frameReceived, &(dataFrame)))
 	{
 		CWLog("CW80211: Error parsing data frame");
 		return CW_FALSE;
 	}
+	
+	/* QoS data frames (subtype 8-15) carry a 2-byte QoS Control field,
+	 * so the real 802.11 header is 26 bytes, not 24. Without this the
+	 * LLC/SNAP detection is off by 2 and the SNAP header is left in the
+	 * 802.3 payload, corrupting the frame (e.g. DHCP DISCOVER ignored). */
+	if( (WLAN_FC_GET_STYPE(dataFrame.frameControl) & 0x08) )
+		hdrLen80211 = HLEN_80211 + 2;
+	
+	unsigned char * payload = frameReceived+hdrLen80211;
+	short int etherType = (payload[6] << 8) | payload[7];
 	
 	if(	
 		(
@@ -109,14 +120,14 @@ CWBool CWConvertDataFrame_80211_to_8023(unsigned char *frameReceived, int frameL
 					
 		if(flagEncaps == CW_TRUE)
 		{
-			sizeEthFrame = ETH_HLEN+(frameLen - HLEN_80211 - ENCAPS_HDR_LEN);
-			offsetEthPayload = HLEN_80211+ENCAPS_HDR_LEN;
+			sizeEthFrame = ETH_HLEN+(frameLen - hdrLen80211 - ENCAPS_HDR_LEN);
+			offsetEthPayload = hdrLen80211+ENCAPS_HDR_LEN;
 			//	CWLog("Con ENCAPS. EthPayload Len: %d. EthType: %d", offsetEthPayload, etherType);
 		}
 		else
 		{
-			sizeEthFrame = ETH_HLEN+(frameLen - HLEN_80211);
-			offsetEthPayload = HLEN_80211;
+			sizeEthFrame = ETH_HLEN+(frameLen - hdrLen80211);
+			offsetEthPayload = hdrLen80211;
 			//	CWLog("Senza LLC. EthPayload Len: %d", offsetEthPayload);
 		}
 				
