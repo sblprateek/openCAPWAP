@@ -222,8 +222,18 @@ CWBool CWSecurityInitSessionClient(CWSocket sock,
 	
 	CWDebugLog("Making Handshake...");
 	{
-		int _hs_ret = SSL_do_handshake(*sessionPtr);
-		CWLog("SSL_do_handshake returned %d", _hs_ret);
+		int _hs_ret;
+		int _ssl_err;
+		do {
+			_hs_ret = SSL_do_handshake(*sessionPtr);
+			_ssl_err = SSL_get_error(*sessionPtr, _hs_ret);
+			CWLog("SSL_do_handshake returned %d, ssl_err=%d", _hs_ret, _ssl_err);
+			if (_hs_ret <= 0 && (_ssl_err == SSL_ERROR_WANT_READ || (_ssl_err == SSL_ERROR_SYSCALL && errno == 0))) {
+				CWLog("DTLS: waiting for next handshake message... errno=%d", errno);
+				continue;
+			}
+			break;
+		} while(1);
 		if(_hs_ret <= 0) {
 			char _ebuf[256];
 			ERR_error_string(ERR_get_error(), _ebuf);
@@ -448,8 +458,18 @@ CWBool CWSecurityInitSessionServerDataChannel(CWWTPManager* pWtp,
 	
 	CWDebugLog("Before HS");
 	{
-		int _hs_ret = SSL_do_handshake(*sessionPtr);
-		CWLog("SSL_do_handshake returned %d", _hs_ret);
+		int _hs_ret;
+		int _ssl_err;
+		do {
+			_hs_ret = SSL_do_handshake(*sessionPtr);
+			_ssl_err = SSL_get_error(*sessionPtr, _hs_ret);
+			CWLog("SSL_do_handshake returned %d, ssl_err=%d", _hs_ret, _ssl_err);
+			if (_hs_ret <= 0 && (_ssl_err == SSL_ERROR_WANT_READ || (_ssl_err == SSL_ERROR_SYSCALL && errno == 0))) {
+				CWLog("DTLS: waiting for next handshake message... errno=%d", errno);
+				continue;
+			}
+			break;
+		} while(1);
 		if(_hs_ret <= 0) {
 			char _ebuf[256];
 			ERR_error_string(ERR_get_error(), _ebuf);
@@ -533,8 +553,18 @@ CWBool CWSecurityInitGenericSessionServerDataChannel(CWSafeList packetDataList,
 	
 	CWDebugLog("Before HS");
 	{
-		int _hs_ret = SSL_do_handshake(*sessionPtr);
-		CWLog("SSL_do_handshake returned %d", _hs_ret);
+		int _hs_ret;
+		int _ssl_err;
+		do {
+			_hs_ret = SSL_do_handshake(*sessionPtr);
+			_ssl_err = SSL_get_error(*sessionPtr, _hs_ret);
+			CWLog("SSL_do_handshake returned %d, ssl_err=%d", _hs_ret, _ssl_err);
+			if (_hs_ret <= 0 && (_ssl_err == SSL_ERROR_WANT_READ || (_ssl_err == SSL_ERROR_SYSCALL && errno == 0))) {
+				CWLog("DTLS: waiting for next handshake message... errno=%d", errno);
+				continue;
+			}
+			break;
+		} while(1);
 		if(_hs_ret <= 0) {
 			char _ebuf[256];
 			ERR_error_string(ERR_get_error(), _ebuf);

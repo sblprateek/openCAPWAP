@@ -295,6 +295,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				
 			if(!CW80211ParseFrameIEControl(msgPtr->msg, &(offsetFrameReceived), &(frameControl)))
 				return CW_FALSE;
+			CWLog("[UL-DBG] 80211 branch: fc=0x%04x type=%d isData=%d msglen=%d", (unsigned short)frameControl, WLAN_FC_GET_TYPE(frameControl), (WLAN_FC_GET_TYPE(frameControl)==WLAN_FC_TYPE_DATA), msglen);
 
 #ifdef SPLIT_MAC
 
@@ -334,10 +335,14 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 				CW_COPY_MEMORY(dataFrameBuffer, dataHdr, HLEN_80211);
 				CW_COPY_MEMORY(dataFrameBuffer+HLEN_80211, msgPtr->msg+HLEN_80211, msglen-HLEN_80211);
 				
+				CWLog("[UL-DBG] before-bcast-check: DA=%02x:%02x:%02x:%02x:%02x:%02x SA=%02x:%02x:%02x:%02x:%02x:%02x bcastDA=%d msglen=%d", dataFrame.DA[0],dataFrame.DA[1],dataFrame.DA[2],dataFrame.DA[3],dataFrame.DA[4],dataFrame.DA[5], dataFrame.SA[0],dataFrame.SA[1],dataFrame.SA[2],dataFrame.SA[3],dataFrame.SA[4],dataFrame.SA[5], checkAddressBroadcast(dataFrame.DA), msglen);
 				//Broadcast
 				if(checkAddressBroadcast(dataFrame.DA))
 				{
-					if(!CWConvertDataFrame_80211_to_8023(msgPtr->msg, msglen, frame8023, &(frame8023len)))
+					CWLog("[UL-DBG] calling convert msglen=%d", msglen);
+					int cret = CWConvertDataFrame_80211_to_8023(msgPtr->msg, msglen, frame8023, &(frame8023len));
+					CWLog("[UL-DBG] convert returned=%d frame8023len=%d", cret, frame8023len);
+					if(!cret)
 							return CW_FALSE;
 						
 					write_bytes = write(ACTap_FD, frame8023, frame8023len);
@@ -451,6 +456,7 @@ CWBool ACEnterRun(int WTPIndex, CWProtocolMessage *msgPtr, CWBool dataFlag) {
 						if(!CWConvertDataFrame_80211_to_8023(msgPtr->msg, msglen, frame8023, &(frame8023len)))
 							return CW_FALSE;
 						
+						CWLog("[UL-DBG] CONVERTED+WRITING bcast: frame8023len=%d", frame8023len);
 						write_bytes = write(ACTap_FD, frame8023, frame8023len);
 						if(write_bytes != frame8023len){
 							CWLog("%02X %02X %02X %02X %02X %02X ",msgPtr->msg[0], msgPtr->msg[1], msgPtr->msg[2], msgPtr->msg[3], msgPtr->msg[4], msgPtr->msg[5]);
@@ -2542,7 +2548,7 @@ CW_THREAD_RETURN_TYPE CWACReceiveDataChannel(void *arg) {
 
 	/* Info Socket Dati */
 	struct sockaddr_in *tmpAdd = (struct sockaddr_in *) &(address);
-	CWLog("New DTLS Session Data. %s:%d, socket: %d", inet_ntoa(tmpAdd->sin_addr), ntohs(tmpAdd->sin_port), dataSocket);
+	CWLog("New DTLS Session Data. socket: %d", dataSocket);
 
 	/* Sessione DTLS Dati */
 	if(!CWErr(CWSecurityInitSessionServerDataChannel(&(gWTPs[i]),	

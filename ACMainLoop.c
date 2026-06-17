@@ -658,6 +658,8 @@ __inline__ genericHandshakeThreadPtr CWWTPThreadGenericByAddress(CWNetworkLev4Ad
  */
 CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 
+	pthread_detach(pthread_self()); /* detach early */
+
 	int 		i = ((CWACThreadArg*)arg)->index;
 	CWSocket 	sock = ((CWACThreadArg*)arg)->sock;
 	int 		interfaceIndex = ((CWACThreadArg*)arg)->interfaceIndex;
@@ -982,6 +984,9 @@ CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 					 */
 					#ifdef CW_DTLS_DATA_CHANNEL
 					
+					/* Per-WTP CWACReceiveDataChannel disabled: the persistent generic
+					 * data thread now handles the full data channel. This thread tried a
+					 * second DTLS handshake on the same socket and would fail/crash. */
 					if(gWTPs[i].sessionDataActive == CW_FALSE)
 					{
 						CWACThreadArg *argPtrDataThread;
@@ -1262,10 +1267,14 @@ void _CWCloseThread(int i) {
 	/* CW_FREE_OBJECT(gWTPs[i].configureReqValuesPtr); */
 	
 	CWCleanSafeList(gWTPs[i].packetReceiveList, free);
-	CWDestroySafeList(gWTPs[i].packetReceiveList);
-
+	/* Mark the slot closing and free the list while holding gWTPsMutex, so the
+	 * generic data pump (which checks isNotFree + enqueues under gWTPsMutex)
+	 * can never enqueue into a freed list. Order matters: set FALSE *before*
+	 * destroy, both inside the same critical section. */
 	CWThreadMutexLock(&gWTPsMutex);
 	gWTPs[i].isNotFree = CW_FALSE;
+	CWDestroySafeList(gWTPs[i].packetReceiveList);
+	gWTPs[i].packetReceiveList = NULL;
 	CWThreadMutexUnlock(&gWTPsMutex);
 	
 //-- Elena Agostini: fake method to delete all node about that WTP
@@ -1288,7 +1297,8 @@ void _CWCloseThread(int i) {
 	CWThreadMutexUnlock(&(mutexAvlTree));
 //--
 	
-	CWLog("_CWCloseThread done"); pthread_detach(pthread_self()); pthread_exit(NULL);
+	CWLog("_CWCloseThread done");
+	pthread_exit(NULL);
 }
 
 void CWCloseThread() {
@@ -1460,6 +1470,7 @@ CW_THREAD_RETURN_TYPE CWGenericWTPDataHandshake(void *arg) {
 	CW_REPEAT_FOREVER {
 		countPacketDataList=0;
 	
+
 		//Se ci sono pacchetti sulla lista dati ... 
 		CWLockSafeList(argInputThread->packetDataList);
 		countPacketDataList = CWGetCountElementFromSafeList(argInputThread->packetDataList);

@@ -684,6 +684,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 							frame->offset = readByest80211;
 							frame->data_msgType = CW_IEEE_802_11_FRAME_TYPE;
 
+							CWLog("[DL-BC-SEND] pre-assemble indexWTP=%d readBytes=%d pathMTU=%d", indexWTP, readByest80211, gWTPs[indexWTP].pathMTU);
 							if(!CWAssembleDataMessage(&completeMsgPtr, 
 												  &fragmentsNum, 
 												  gWTPs[indexWTP].pathMTU, 
@@ -692,6 +693,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 												  CW_PACKET_PLAIN
 												  ,0))
 							{
+								CWLog("[DL-BC-SEND] ASSEMBLE FAILED indexWTP=%d readBytes=%d pathMTU=%d", indexWTP, readByest80211, gWTPs[indexWTP].pathMTU);
 //								for(k = 0; k < fragmentsNum; k++)
 //									CW_FREE_PROTOCOL_MESSAGE(completeMsgPtr[k]);
 									
@@ -714,6 +716,7 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 								CWLog("data socket of WTP isn't ready.");
 								goto after_tap;
 							}
+							CWLog("[DL-BC-SEND] about to send indexWTP=%d fragmentsNum=%d dataSocket=%d", indexWTP, fragmentsNum, dataSocket);
 							
 							for (k = 0; k < fragmentsNum; k++) 
 							{
@@ -729,9 +732,10 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 															completeMsgPtr[k].offset)	) 
 									*/
 								{
-									CWLog("Failure sending Request");
+									CWLog("[DL-BC-SEND] FAILURE sending frag %d indexWTP=%d len=%d", k, indexWTP, completeMsgPtr[k].offset);
 									break;
 								}
+								CWLog("[DL-BC-SEND] SENT frag %d indexWTP=%d len=%d", k, indexWTP, completeMsgPtr[k].offset);
 							}
 							
 //							for (k = 0; k < fragmentsNum; k++)

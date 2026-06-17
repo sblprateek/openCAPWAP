@@ -613,6 +613,7 @@ CW_THREAD_RETURN_TYPE CWManageApplication(void* arg) {
 					//	CWLog("payload : %s", payload);
 						
 						cmdWLAN->typeCmd = CW_OP_DEL_WLAN;
+						cmdWLAN->ssid = NULL; /* del has no SSID; avoid freeing garbage later */
 						
 						char * token;
 						token = strtok(payload, ":");
