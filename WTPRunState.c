@@ -474,7 +474,7 @@ manager_data_failure:
 							if(checkAddressBroadcast(dataFrame.DA))
 							{
 						//		CWLog("Broadcast destination");
-								CWInjectFrameMonitor(rawInjectSocket, msgPtr.msg, msgPtr.offset, 0, 0);
+								CWWTPSendFrame((unsigned char*)msgPtr.msg, msgPtr.offset);
 							}
 							else
 							{
@@ -490,7 +490,7 @@ manager_data_failure:
 								{
 									//NB. Controllo anche il BSSID?
 						//			CWLog("STA trovata [%02x:%02x:%02x:%02x:%02x:%02x] destinataria.", (int) tmpNodeSta->staAddr[0], (int) tmpNodeSta->staAddr[1], (int) tmpNodeSta->staAddr[2], (int) tmpNodeSta->staAddr[3], (int) tmpNodeSta->staAddr[4], (int) tmpNodeSta->staAddr[5]);
-									CWInjectFrameMonitor(rawInjectSocket, msgPtr.msg, msgPtr.offset, 0, 0);
+									CWWTPSendFrame((unsigned char*)msgPtr.msg, msgPtr.offset);
 								}
 								//----
 							}

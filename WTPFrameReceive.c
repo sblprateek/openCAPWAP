@@ -38,6 +38,7 @@
 #include "WTPFrameReceive.h"
 #include "common.h"
 #include "ieee802_11_defs.h"
+#include <errno.h>
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
@@ -50,35 +51,46 @@
 
 
 int CWWTPSendFrame(unsigned char *buf, int len){
-    int FRAME_80211_LEN=24;
-    int gRawSockLocal;
-    struct sockaddr_ll addr;
-    
-    if ((gRawSockLocal=socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL)))<0) 	{
-		CWDebugLog("THR FRAME: Error creating socket");
-		CWExitThread();
-	}
+	/* Option B: deliver downlink via ath1 (real AP TX path) not monitor0.
+	 * Client MAC accepts frames from hostapd's ath1 VAP, not raw inject.
+	 * AC frame: [FC2][DUR2][Addr1=DA 6][Addr2=BSSID 6][Addr3=SA 6][Seq2]
+	 *           [LLC/SNAP 8: aa aa 03 00 00 00 <ethertype 2>][payload]
+	 * Build 802.3: [DA 6][SA 6][ethertype 2][payload] -> sendto ath1. */
+	const int HDR = 24, SNAP = 8;
+	unsigned char f8023[2048];
+	int flen, sock;
+	struct sockaddr_ll sll;
+	unsigned short etype;
+	int plen;
 
-    memset(&addr, 0, sizeof(addr));
-	addr.sll_family = AF_PACKET;
-//	addr.sll_protocol = htons(ETH_P_ALL);
-//	addr.sll_pkttype = PACKET_HOST;
-	addr.sll_ifindex = if_nametoindex("monitor0"); //if_nametoindex(gRadioInterfaceName_0);
- 
-	 
-	if ((bind(gRawSockLocal, (struct sockaddr*)&addr, sizeof(addr)))<0) {
- 		CWDebugLog("THR FRAME: Error binding socket");
- 		CWExitThread();
- 	}
- 	
-    if( send(gRawSockLocal, buf + FRAME_80211_LEN, len - FRAME_80211_LEN,0) < 1 ){
-        CWDebugLog("Error to send frame on raw socket");
-        return -1;
-    }
-    CWDebugLog("Send (%d) bytes on raw socket",len - FRAME_80211_LEN);
+	if (len < HDR + SNAP) { CWDebugLog("CWWTPSendFrame: short"); return -1; }
 
-    return 1;
-    
+	etype = ((unsigned short)buf[HDR+6] << 8) | buf[HDR+7];
+	plen  = len - HDR - SNAP;
+	flen  = 14 + plen;
+	if (flen > (int)sizeof(f8023)) { CWDebugLog("CWWTPSendFrame: too big"); return -1; }
+
+	memcpy(f8023,      buf + 4,  6);  /* DA  = Addr1 */
+	memcpy(f8023 + 6,  buf + 16, 6);  /* SA  = Addr3 */
+	f8023[12] = (etype >> 8) & 0xff;
+	f8023[13] =  etype       & 0xff;
+	memcpy(f8023 + 14, buf + HDR + SNAP, plen);
+
+	sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+	if (sock < 0) { CWDebugLog("CWWTPSendFrame: socket fail"); return -1; }
+
+	memset(&sll, 0, sizeof(sll));
+	sll.sll_family  = AF_PACKET;
+	sll.sll_ifindex = if_nametoindex("ath1");
+	sll.sll_halen   = 6;
+	memcpy(sll.sll_addr, f8023, 6);
+
+	if (sendto(sock, f8023, flen, 0, (struct sockaddr *)&sll, sizeof(sll)) < 0)
+		CWDebugLog("CWWTPSendFrame: sendto ath1 failed");
+	else
+		CWDebugLog("CWWTPSendFrame: sent %d bytes via ath1", flen);
+	close(sock);
+	return 1;
 }
 
 int getMacAddr(int sock, char* interface, unsigned char* macAddr){
@@ -348,6 +360,7 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFrame(void *arg){
 				/* Option B: qca-wifi/hostapd owns MLME. A toDS data frame means
 				 * hostapd has already associated this STA at the driver level.
 				 * Learn it: add to BSS staList + AVL tree so its data forwards. */
+				int _sta_learned=0;
 				if(WTPGlobalBSSList != NULL && WTPGlobalBSSList[0] != NULL)
 				{
 					WTPSTAInfo *learnedSta = addSTABySA(WTPGlobalBSSList[0], dataFrame.SA);
@@ -361,9 +374,11 @@ CW_THREAD_RETURN_TYPE CWWTPReceiveFrame(void *arg){
 						tmpNodeSta = AVLfind(dataFrame.SA, avlTree);
 						CWThreadMutexUnlock(&mutexAvlTree);
 						CWPrintEthernetAddress(dataFrame.SA, "[OptionB] Learned associated STA from data frame");
+						_sta_learned=1;
 					}
 				}
-				if(tmpNodeSta == NULL)
+				/* Forward even the first frame if STA was just learned */
+				if(tmpNodeSta == NULL && !_sta_learned)
 					continue;
 			}
 		//	else
