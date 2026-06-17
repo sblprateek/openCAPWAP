@@ -733,6 +733,11 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 									*/
 								{
 									CWLog("[DL-BC-SEND] FAILURE sending frag %d indexWTP=%d len=%d", k, indexWTP, completeMsgPtr[k].offset);
+									/* Invalidate stale DTLS session so re-discovery happens promptly */
+									if(gWTPs[indexWTP].sessionData != NULL) {
+										CWLog("[DL-BC-SEND] Invalidating stale session for WTP %d", indexWTP);
+										gWTPs[indexWTP].sessionData = NULL;
+									}
 									break;
 								}
 								CWLog("[DL-BC-SEND] SENT frag %d indexWTP=%d len=%d", k, indexWTP, completeMsgPtr[k].offset);
