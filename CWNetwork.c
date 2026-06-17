@@ -112,6 +112,8 @@ CWBool CWNetworkReceiveUnsafeConnected(CWSocket sock, char *buf, int len, int *r
 	while((*readBytesPtr = recv(sock, buf, len, 0)) < 0) {
 
 		if(errno == EINTR) continue;
+		/* transient errors on connected UDP sockets: retry, do not treat as fatal */
+		if(errno == ECONNREFUSED || errno == EAGAIN || errno == EWOULDBLOCK || errno == ECONNRESET) continue;
 		CWNetworkRaiseSystemError(CW_ERROR_RECEIVING);
 	}
 	return CW_TRUE;
@@ -136,6 +138,8 @@ CWBool CWNetworkReceiveUnsafe(CWSocket sock,
 	while((*readBytesPtr = recvfrom(sock, buf, len, flags, (struct sockaddr*)addrPtr, &addrLen)) < 0) {
 
 		if(errno == EINTR) continue;
+		/* transient errors on connected UDP sockets: retry, do not treat as fatal */
+		if(errno == ECONNREFUSED || errno == EAGAIN || errno == EWOULDBLOCK || errno == ECONNRESET) continue;
 		CWNetworkRaiseSystemError(CW_ERROR_RECEIVING);
 	}
 	return CW_TRUE;
