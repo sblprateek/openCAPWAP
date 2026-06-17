@@ -85,6 +85,7 @@ WTP_OBJS += ./HostapdHeaders/utils/os_unix.o
 WTP_OBJS += ./src/dhcp-option/capwap_dhcp_opt.o
 WTP_OBJS += ./src/dhcp-option/capwap_acdisc.o
 WTP_OBJS += ./src/dhcp-option/capwap_dhcp_query.o
+WTP_OBJS += ./src/timesync/wtp_timesync.o
 
 WTP_NAME = WTP_arm
 

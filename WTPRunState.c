@@ -43,6 +43,7 @@
 #include <sys/ioctl.h>
 #include <netpacket/packet.h>
 #include "CWWTP.h"
+#include "src/timesync/wtp_timesync.h"   /* CWWTPApplyACTime() */
 #include "CWVendorPayloads.h"
 #include "common.h"
 #include "ieee802_11_defs.h"
@@ -1029,6 +1030,8 @@ CWBool CWWTPManageGenericRunMessage(CWProtocolMessage *msgPtr) {
 					return CW_FALSE;
 				}
 				CWLog("Echo Response received");
+				/* Periodic time sync: apply AC Timestamp element (if any). */
+				CWWTPApplyACTimeFromElems((msgPtr->msg)+(msgPtr->offset), len);
 				break;
 			}
 
@@ -2093,12 +2096,16 @@ CWBool CWParseConfigurationUpdateRequest (char *msg,
 				vendorMsgElemFound=CW_TRUE;
 				completeMsg.offset += elemLen;
 				break;
+			case CW_MSG_ELEMENT_TIMESTAMP_CW_TYPE:
+				/* RFC 5415 Timestamp: periodic AC time -> step WTP clock */
+				CWWTPApplyACTime(CWProtocolRetrieve32(&completeMsg));
+				break;
 			default:
 				return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Unrecognized Message Element");
 		}
 	}
 
-	if (completeMsg.offset != len) 
+	if (completeMsg.offset != len)
 		return CWErrorRaise(CW_ERROR_INVALID_FORMAT, "Garbage at the End of the Message");
 
 	/*Update 2009:

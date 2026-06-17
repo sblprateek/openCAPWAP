@@ -37,6 +37,7 @@
 
  
 #include "CWWTP.h"
+#include "src/timesync/wtp_timesync.h"   /* CWWTPApplyACTime() */
 
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
@@ -286,6 +287,10 @@ CWBool CWParseConfigureResponseMessage (char *msg,
 				break;
 			case CW_MSG_ELEMENT_WTP_FALLBACK_CW_TYPE:
 				if(!(CWParseWTPFallback(&completeMsg, len, valuesPtr))) return CW_FALSE;
+				break;
+			case CW_MSG_ELEMENT_TIMESTAMP_CW_TYPE:
+				/* RFC 5415 Timestamp: AC current UTC -> step WTP clock */
+				CWWTPApplyACTime(CWProtocolRetrieve32(&completeMsg));
 				break;
 			default:
 				return CWErrorRaise(CW_ERROR_INVALID_FORMAT,
