@@ -1,3 +1,4 @@
+#include <setjmp.h>
 /************************************************************************************************
  * Copyright (c) 2006-2009 Laboratorio di Sistemi di Elaborazione e Bioingegneria Informatica	*
  *                          Universita' Campus BioMedico - Italy								*
@@ -656,9 +657,15 @@ __inline__ genericHandshakeThreadPtr CWWTPThreadGenericByAddress(CWNetworkLev4Ad
  * Session's thread function: each thread will manage a single session 
  * with one WTP.
  */
+static jmp_buf _cwManageWTP_jmpbuf;
+
 CW_THREAD_RETURN_TYPE CWManageWTP(void *arg) {
 
 	pthread_detach(pthread_self()); /* detach early */
+	if(setjmp(_cwManageWTP_jmpbuf) != 0) {
+		/* _CWCloseThread longjmp'd here - exit cleanly */
+		return NULL;
+	}
 
 	int 		i = ((CWACThreadArg*)arg)->index;
 	CWSocket 	sock = ((CWACThreadArg*)arg)->sock;
@@ -1298,7 +1305,7 @@ void _CWCloseThread(int i) {
 //--
 	
 	CWLog("_CWCloseThread done");
-	pthread_exit(NULL);
+	longjmp(_cwManageWTP_jmpbuf, 1);
 }
 
 void CWCloseThread() {
