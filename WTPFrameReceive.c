@@ -51,24 +51,49 @@
 
 
 int CWWTPSendFrame(unsigned char *buf, int len){
-	/* Option B: deliver downlink via ath1 (real AP TX path) not monitor0.
-	 * Client MAC accepts frames from hostapd's ath1 VAP, not raw inject.
-	 * AC frame: [FC2][DUR2][Addr1=DA 6][Addr2=BSSID 6][Addr3=SA 6][Seq2]
-	 *           [LLC/SNAP 8: aa aa 03 00 00 00 <ethertype 2>][payload]
-	 * Build 802.3: [DA 6][SA 6][ethertype 2][payload] -> sendto ath1. */
+	/* Option B: deliver downlink via ath1 (real AP TX path).
+	 * Uses a persistent AF_PACKET socket (opened once, reused for all
+	 * downlink frames) to avoid the 100-1800ms latency spike from
+	 * socket open/close on every inject call.
+	 * Frame layout from AC (fromDS, non-QoS, 24-byte 802.11 header):
+	 *   [FC 2][DUR 2][Addr1=DA 6][Addr2=BSSID 6][Addr3=SA 6][SeqCtl 2]
+	 *   [LLC/SNAP 8: aa aa 03 00 00 00 <ethertype 2>][payload ...]
+	 * Decap to 802.3: [DA 6][SA 6][ethertype 2][payload] */
 	const int HDR = 24, SNAP = 8;
+	static int _ath1_sock = -1;
+	static struct sockaddr_ll _ath1_sll;
 	unsigned char f8023[2048];
-	int flen, sock;
-	struct sockaddr_ll sll;
+	int flen;
 	unsigned short etype;
 	int plen;
 
-	if (len < HDR + SNAP) { CWDebugLog("CWWTPSendFrame: short"); return -1; }
+	if (len < HDR + SNAP) {
+		CWDebugLog("CWWTPSendFrame: frame too short (%d)", len);
+		return -1;
+	}
 
-	etype = ((unsigned short)buf[HDR+6] << 8) | buf[HDR+7];
-	plen  = len - HDR - SNAP;
-	flen  = 14 + plen;
-	if (flen > (int)sizeof(f8023)) { CWDebugLog("CWWTPSendFrame: too big"); return -1; }
+	/* Lazy-init the persistent socket */
+	if (_ath1_sock < 0) {
+		_ath1_sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+		if (_ath1_sock < 0) {
+			CWDebugLog("CWWTPSendFrame: socket() failed errno=%d", errno);
+			return -1;
+		}
+		memset(&_ath1_sll, 0, sizeof(_ath1_sll));
+		_ath1_sll.sll_family  = AF_PACKET;
+		_ath1_sll.sll_ifindex = if_nametoindex("ath1");
+		_ath1_sll.sll_halen   = 6;
+		CWDebugLog("CWWTPSendFrame: ath1 socket opened fd=%d ifindex=%d",
+		           _ath1_sock, _ath1_sll.sll_ifindex);
+	}
+
+	etype  = ((unsigned short)buf[HDR+6] << 8) | buf[HDR+7];
+	plen   = len - HDR - SNAP;
+	flen   = 14 + plen;
+	if (flen > (int)sizeof(f8023)) {
+		CWDebugLog("CWWTPSendFrame: frame too large (%d)", flen);
+		return -1;
+	}
 
 	memcpy(f8023,      buf + 4,  6);  /* DA  = Addr1 */
 	memcpy(f8023 + 6,  buf + 16, 6);  /* SA  = Addr3 */
@@ -76,20 +101,18 @@ int CWWTPSendFrame(unsigned char *buf, int len){
 	f8023[13] =  etype       & 0xff;
 	memcpy(f8023 + 14, buf + HDR + SNAP, plen);
 
-	sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-	if (sock < 0) { CWDebugLog("CWWTPSendFrame: socket fail"); return -1; }
+	/* Update DA in sockaddr for this frame */
+	memcpy(_ath1_sll.sll_addr, f8023, 6);
 
-	memset(&sll, 0, sizeof(sll));
-	sll.sll_family  = AF_PACKET;
-	sll.sll_ifindex = if_nametoindex("ath1");
-	sll.sll_halen   = 6;
-	memcpy(sll.sll_addr, f8023, 6);
-
-	if (sendto(sock, f8023, flen, 0, (struct sockaddr *)&sll, sizeof(sll)) < 0)
-		CWDebugLog("CWWTPSendFrame: sendto ath1 failed");
-	else
-		CWDebugLog("CWWTPSendFrame: sent %d bytes via ath1", flen);
-	close(sock);
+	if (sendto(_ath1_sock, f8023, flen, 0,
+	           (struct sockaddr *)&_ath1_sll, sizeof(_ath1_sll)) < 0) {
+		CWDebugLog("CWWTPSendFrame: sendto ath1 failed errno=%d", errno);
+		/* Socket may be stale - close so it re-opens next call */
+		close(_ath1_sock);
+		_ath1_sock = -1;
+		return -1;
+	}
+	CWDebugLog("CWWTPSendFrame: sent %d bytes via ath1", flen);
 	return 1;
 }
 
