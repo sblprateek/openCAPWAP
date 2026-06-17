@@ -11,10 +11,12 @@ TARGET_SYSROOT = $(QSDK_STAGING)/target-arm
 CC  = $(TOOLCHAIN)/bin/arm-openwrt-linux-muslgnueabi-gcc
 RM  = /bin/rm -f
 
-INCLUDES  = -I$(TARGET_SYSROOT)/usr/include/libnl3
+INCLUDES  = -I.
+INCLUDES += -I$(TARGET_SYSROOT)/usr/include/libnl3
 INCLUDES += -I$(TARGET_SYSROOT)/usr/include
 INCLUDES += -I./HostapdHeaders/utils/
 INCLUDES += -I./include/
+INCLUDES += -I./src/dhcp-option/
 
 LIB_PATH  = $(TARGET_SYSROOT)/usr/lib
 
@@ -79,6 +81,10 @@ WTP_OBJS += CWTunnel.o
 WTP_OBJS += CWAVL.o
 WTP_OBJS += timerlib.o
 WTP_OBJS += ./HostapdHeaders/utils/os_unix.o
+# DHCP option 43/138 CAPWAP AC discovery library (UCI request backend)
+WTP_OBJS += ./src/dhcp-option/capwap_dhcp_opt.o
+WTP_OBJS += ./src/dhcp-option/capwap_acdisc.o
+WTP_OBJS += ./src/dhcp-option/capwap_dhcp_query.o
 
 WTP_NAME = WTP_arm
 

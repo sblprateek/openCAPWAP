@@ -39,6 +39,10 @@
 
 #include "CWWTP.h"
 
+/* DHCP option 43/138 CAPWAP AC discovery (additive, non-breaking) */
+#include "capwap_acdisc.h"
+#include "capwap_dhcp_query.h"
+
 #ifdef DMALLOC
 #include "../dmalloc-5.5.0/dmalloc.h"
 #endif
@@ -771,37 +775,117 @@ __inline__ int CWGetFragmentID() {
 	return fragID++;
 }
 
+/*
+ * Persist a DHCP-learned AC into config.wtp's <AC_ADDRESSES> block so it
+ * survives restarts. No-op if the AC is already listed (uncommented).
+ * Best-effort: any failure is logged and ignored.
+ */
+static void CWWTPPersistACToConfig(const char *ac) {
+	char lines[256][512];
+	int n = 0, acLine = -1, present = 0, i;
+	FILE *in = fopen(CW_CONFIG_FILE, "rb");
+	if(!in) return;
+	while(n < 256 && fgets(lines[n], sizeof lines[n], in)) {
+		if(strstr(lines[n], "<AC_ADDRESSES>")) acLine = n;
+		{
+			char *p = lines[n]; while(*p == ' ' || *p == '\t') p++;
+			if(*p != '#') {
+				char buf[512]; char *nl;
+				strncpy(buf, p, sizeof buf); buf[sizeof buf - 1] = 0;
+				nl = strpbrk(buf, "\r\n"); if(nl) *nl = 0;
+				if(strcmp(buf, ac) == 0) present = 1;
+			}
+		}
+		n++;
+	}
+	fclose(in);
+	if(acLine < 0 || present) return;   /* no block, or already there */
+	{
+		char tmpPath[600]; FILE *out;
+		snprintf(tmpPath, sizeof tmpPath, "%s.tmp", CW_CONFIG_FILE);
+		if(!(out = fopen(tmpPath, "wb"))) return;
+		for(i = 0; i < n; i++) {
+			fputs(lines[i], out);
+			if(i == acLine) fprintf(out, "%s\n", ac);
+		}
+		fclose(out);
+		if(rename(tmpPath, CW_CONFIG_FILE) == 0)
+			CWLog("[DHCP persist] saved AC %s into %s", ac, CW_CONFIG_FILE);
+		else
+			CWLog("[DHCP persist] rename failed for %s", CW_CONFIG_FILE);
+	}
+}
 
-/* 
+/*
  * Parses config file and inits WTP configuration.
  */
 CWBool CWWTPLoadConfiguration() {
 	int i;
-	
+
 	CWLog("WTP Loads Configuration");
-	
+
 	/* get saved preferences */
 	if(!CWErr(CWParseConfigFile())) {
 		CWLog("Can't Read Config File");
 		exit(1);
 	}
-	
-	if(gCWACCount == 0) 
+
+	if(gCWACCount == 0)
 		return CWErrorRaise(CW_ERROR_NEED_RESOURCE, "No AC Configured");
-	
-	CW_CREATE_ARRAY_ERR(gCWACList, 
-			    gCWACCount,
+
+	/* DHCP AC discovery, fully in-process (no udhcpc, no scripts): actively
+	 * query the LAN for CAPWAP option 43/138 and decode the AC IP. Purely
+	 * additive: if nothing valid is returned, the list is exactly the
+	 * statically configured one and behaviour is unchanged. */
+	char dhcpAC[16];
+	char optBuf138[256] = "", optBuf43[256] = "";
+	const char *qiface = (gBridgeInterfaceName && gBridgeInterfaceName[0]) ? gBridgeInterfaceName :
+			     ((gEthInterfaceName && gEthInterfaceName[0]) ? gEthInterfaceName : "br-lan");
+	if(capwap_dhcp_query(qiface, optBuf43, sizeof optBuf43, optBuf138, sizeof optBuf138) == 0)
+		CWLog("DHCP query on %s: opt43='%s' opt138='%s'", qiface, optBuf43, optBuf138);
+	else
+		CWLog("DHCP query on %s: no CAPWAP option 43/138 returned (using static AC list)", qiface);
+
+	/* env fallback (still script-free) in case a platform exposes it that way */
+	const char *o43  = optBuf43[0]  ? optBuf43  : getenv("opt43");
+	const char *o138 = optBuf138[0] ? optBuf138 : getenv("opt138");
+	CWBool haveDhcpAC = (capwap_acdisc_ip(o138, o43, dhcpAC, sizeof dhcpAC) == 0)
+				? CW_TRUE : CW_FALSE;
+
+	/* persist the DHCP-learned AC into config.wtp so it stays across restarts */
+	if(haveDhcpAC)
+		CWWTPPersistACToConfig(dhcpAC);
+
+	int total = gCWACCount + (haveDhcpAC ? 1 : 0);
+
+	CW_CREATE_ARRAY_ERR(gCWACList,
+			    total,
 			    CWACDescriptor,
 			    return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+
+	/* NOTE: CW_CREATE_STRING_FROM_STRING_ERR expands its first argument THREE
+	 * times, so the destination must be free of side effects. Use a plain
+	 * subscript (gCWACList[dst]) and advance dst on its own line; passing
+	 * gCWACList[dst++] would increment dst three times and strcpy into an
+	 * out-of-bounds element (wild write / heap corruption). */
+	int dst = 0;
+	if(haveDhcpAC) {
+		CWLog("AC %s learned from DHCP option 43/138 (tried first)", dhcpAC);
+		CW_CREATE_STRING_FROM_STRING_ERR(gCWACList[dst].address, dhcpAC,
+						 return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+		dst++;
+	}
 
 	for(i = 0; i < gCWACCount; i++) {
 
 		CWDebugLog("Init Configuration for AC at %s", gCWACAddresses[i]);
-		CW_CREATE_STRING_FROM_STRING_ERR(gCWACList[i].address, gCWACAddresses[i],
+		CW_CREATE_STRING_FROM_STRING_ERR(gCWACList[dst].address, gCWACAddresses[i],
 						 return CWErrorRaise(CW_ERROR_OUT_OF_MEMORY, NULL););
+		dst++;
 	}
-	
+
 	CW_FREE_OBJECTS_ARRAY(gCWACAddresses, gCWACCount);
+	gCWACCount = total;   /* keep destroy/discovery loops in sync with gCWACList */
 	return CW_TRUE;
 }
 
