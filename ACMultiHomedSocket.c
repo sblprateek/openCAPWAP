@@ -738,7 +738,10 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 										CWLog("[DL-BC-SEND] Invalidating stale session for WTP %d", indexWTP);
 										gWTPs[indexWTP].sessionData = NULL;
 									}
-									break;
+									CW_FREE_OBJECT(completeMsgPtr);
+									CW_FREE_PROTOCOL_MESSAGE(*(frame));
+									CW_FREE_OBJECT(frame);
+									goto after_tap;
 								}
 								CWLog("[DL-BC-SEND] SENT frag %d indexWTP=%d len=%d", k, indexWTP, completeMsgPtr[k].offset);
 							}
