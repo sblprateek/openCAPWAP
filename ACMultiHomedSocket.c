@@ -684,6 +684,14 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 							frame->offset = readByest80211;
 							frame->data_msgType = CW_IEEE_802_11_FRAME_TYPE;
 
+							/* Skip send if DTLS session was invalidated */
+							if(gWTPs[indexWTP].sessionData == NULL) {
+								CWLog("[DL-BC-SEND] sessionData NULL for WTP %d - skipping", indexWTP);
+								CW_FREE_PROTOCOL_MESSAGE(*frame);
+								CW_FREE_OBJECT(frame);
+								goto after_tap;
+							}
+
 							CWLog("[DL-BC-SEND] pre-assemble indexWTP=%d readBytes=%d pathMTU=%d", indexWTP, readByest80211, gWTPs[indexWTP].pathMTU);
 							if(!CWAssembleDataMessage(&completeMsgPtr, 
 												  &fragmentsNum, 
@@ -797,6 +805,14 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 				CWLog("data socket of WTP isn't ready.");
 				goto after_tap;
 			}
+			/* Guard: skip send if DTLS session was invalidated */
+			if (gWTPs[WTPIndexFromSta].sessionData == NULL) {
+				CWLog("[DL-UC] sessionData NULL for WTP %d - skipping", WTPIndexFromSta);
+				CW_FREE_OBJECT(completeMsgPtr);
+				CW_FREE_PROTOCOL_MESSAGE(*(frame));
+				CW_FREE_OBJECT(frame);
+				goto after_tap;
+			}
 			
 			for (k = 0; k < fragmentsNum; k++) 
 			{
@@ -806,8 +822,12 @@ CWBool CWNetworkUnsafeMultiHomed(CWMultiHomedSocket *sockPtr,
 				if(!CWNetworkSendUnsafeUnconnected(dataSocket, &(address), completeMsgPtr[k].msg, completeMsgPtr[k].offset))
 #endif
 				{
-					CWLog("Failure sending Request");
-					break;
+					CWLog("[DL-UC] FAILURE sending unicast - invalidating session for WTP %d", WTPIndexFromSta);
+					if(gWTPs[WTPIndexFromSta].sessionData != NULL) gWTPs[WTPIndexFromSta].sessionData = NULL;
+					CW_FREE_OBJECT(completeMsgPtr);
+					CW_FREE_PROTOCOL_MESSAGE(*(frame));
+					CW_FREE_OBJECT(frame);
+					goto after_tap;
 				}
 			}
 			

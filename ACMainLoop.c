@@ -633,7 +633,13 @@ __inline__ genericHandshakeThreadPtr CWWTPThreadGenericByAddress(CWNetworkLev4Ad
 		{
 			struct sockaddr_in *tmpAdd1 = (struct sockaddr_in *) addressPtr;
 			struct sockaddr_in *tmpAdd2 = (struct sockaddr_in *) &(listGenericThreadDTLSData[indexTmpThread]->addressWTPPtr);
-			CWLog("++++ CWWTPThreadGenericByAddress, NUOVO WTP %s:%d, CORRENTE WTP: %s:%d, Num Generic Thread: %d", inet_ntoa(tmpAdd1->sin_addr), ntohs(tmpAdd1->sin_port), inet_ntoa(tmpAdd2->sin_addr), ntohs(tmpAdd2->sin_port), indexTmpThread);
+			{
+                            unsigned char *_a1=(unsigned char*)&tmpAdd1->sin_addr;
+                            unsigned char *_a2=(unsigned char*)&tmpAdd2->sin_addr;
+                            CWLog("++++ CWWTPThreadGenericByAddress, NUOVO WTP %d.%d.%d.%d:%d, CORRENTE WTP: %d.%d.%d.%d:%d, Num Generic Thread: %d",
+                                _a1[0],_a1[1],_a1[2],_a1[3],ntohs(tmpAdd1->sin_port),
+                                _a2[0],_a2[1],_a2[2],_a2[3],ntohs(tmpAdd2->sin_port),indexTmpThread);
+                            }
 
 			if(
 				(!sock_cmp_addr((struct sockaddr*)addressPtr, (struct sockaddr*)&(listGenericThreadDTLSData[indexTmpThread]->addressWTPPtr),sizeof(CWNetworkLev4Address))) &&
@@ -1294,13 +1300,16 @@ void _CWCloseThread(int i) {
 	tmp=NULL;
 	do {
 		tmp = AVLfindWTPNode(avlTree, i);
-		if(tmp != NULL)
+		if(tmp != NULL && tmp->staAddr != NULL)
 		{
-			CWPrintEthernetAddress(tmp->staAddr, "There is a STA belonging to WTP");
-			avlTree = AVLdeleteNodeWithoutRadioID(avlTree, tmp);
+			unsigned char _mac[6];
+			memcpy(_mac, tmp->staAddr, 6);
+			CWLog("Delete STA from AVL -> %02x:%02x:%02x:%02x:%02x:%02x",
+				_mac[0],_mac[1],_mac[2],_mac[3],_mac[4],_mac[5]);
+			avlTree = AVLdeleteNode(avlTree, _mac, tmp->radioID);
+			tmp = NULL;
 		}
-	}while(tmp != NULL && avlTree != NULL);
-	
+	}while(AVLfindWTPNode(avlTree, i) != NULL);
 	CWThreadMutexUnlock(&(mutexAvlTree));
 //--
 	
